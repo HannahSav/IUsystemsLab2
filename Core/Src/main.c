@@ -22,6 +22,7 @@
 #include "main.h"
 #include "usart.h"
 #include "gpio.h"
+#include "stdbool.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -65,12 +66,23 @@ void SystemClock_Config(void);
   */
 char error[] = "\n\rI don't understand you, try again\n\r>>";
 char ask[] = "\n\rWhat do you want? Print . in the end\n\r>>";
+bool def_mode = 1;
+int def_time_out = 3000;
+int now_time_out = 3000;
+bool now_mode = 1;
 
+bool Compare(char a[], char b[], int i){
+	for(int j = 0;  j < i; j++){
+		if(a[j] != b[j])
+			return false;
+	}
+	return true;
+}
 
 void ReadCommand(){
-	//char txt[] = "What do you want?\n\r>>";
 	char buff[20];
 	char symb = '7';
+	char str_buff[25];
 	size_t i = 0;
 	HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
 	while(symb != '.' && i < 20){
@@ -81,56 +93,81 @@ void ReadCommand(){
 		  i++;
 	  }
 	}
-	if(i >= 20){
+	if(i >= 25){
 		HAL_UART_Transmit(&huart6, (uint8_t*)error, 50, 25);
-		//TODO: goTo
 	}else{
-		HAL_UART_Transmit(&huart6, (uint8_t*)"GOOOOD", 10, 25);
+		strcpy(str_buff,buff);
+
+		if(i == 11){
+			if(Compare(str_buff, "set mode 1.", 11)){
+				HAL_UART_Transmit(&huart6, (uint8_t*)"mur", 10, 25);
+				HAL_Delay(20);
+				now_mode = 1;
+			}else if(Compare(str_buff, "set mode 2.", 11)){
+				HAL_UART_Transmit(&huart6, (uint8_t*)"mur22", 10, 25);
+				HAL_Delay(20);
+				now_mode = 0;
+			}
+		}else if(i >= 14 && i < 20){
+			if(Compare(str_buff, "set timeout", 11)){
+				for( int j = i; j > 11; j--){
+					if(str_buff[j] < '0' || str_buff[j]>'9'){
+						HAL_UART_Transmit(&huart6, (uint8_t*)"HUY", 3, 25);
+						HAL_Delay(20);
+						break;
+					}
+				}
+				HAL_UART_Transmit(&huart6, (uint8_t*)"Timeout eee", 111, 25);
+				HAL_Delay(20);
+				now_time_out = 1000;//Function for it
+			}
+		}else{
+			HAL_UART_Transmit(&huart6, (uint8_t*)"HUY", 3, 25);
+			HAL_Delay(2000);
+		}
+		HAL_UART_Transmit(&huart6, (uint8_t*)str_buff, 15, 25);
+		HAL_Delay(20);
+
 	}
 	/*TODO: parser
 	 * ?
-	 * set mode 1, set mode 2
-	 * set timeout X
-	 * set interrupts on
-	 * set interrupts off
-	 * help
+	 * parralel
+	 * parse timeout
 	 */
 }
 
-void Phore(){
-	//TODO: не горит красный
-
+void Phore(bool mode, int time_out){
 	int i;
 	  while (1)
 	  {
 	   /*горит зеленый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-	      HAL_Delay(1500);
+	      HAL_Delay(time_out/2); //1500
 	   /*мигает зеленый*/
 	      for(i = 0; i < 7; ++i)
 	      {
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-	           HAL_Delay(300);
+	           HAL_Delay(time_out/10);//300
 	      }
 	    /*горит оранжевый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-	      HAL_Delay(600);
+	      HAL_Delay(time_out/5); //600
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	    /*горит красный*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-	      i = 4000;
+	      i = time_out*2;
 	    /*ждем до нажатия кнопки или до окончания времени красного*/
-	      while(i > 0 && HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) != GPIO_PIN_RESET){
+	      while(i > 0 && (mode == 0 || HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) != GPIO_PIN_RESET)){
 	       HAL_Delay(1);
 	       i--;
 	      }
 	    /*если красный горел недостаточно долго, то пусть еще погорит*/
-	      if(i > 3000)
-	       HAL_Delay(i-3000);
+	      if(mode == 1 && i > time_out)//3000
+	    	  HAL_Delay(i-time_out);
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
 	    /*горит оранжевый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-	      HAL_Delay(600);
+	      HAL_Delay(time_out/5);
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	  }
 
@@ -167,8 +204,11 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   /* USER CODE BEGIN WHILE */
-  //Phore();
-  ReadCommand();
+  Phore(1, 1500);
+  /*while(1){
+	  ReadCommand();
+	  HAL_Delay(1000);
+  }*/
   uint8_t str[100];
 
 }
