@@ -23,6 +23,7 @@
 #include "usart.h"
 #include "gpio.h"
 #include "stdbool.h"
+#include <string.h>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -72,6 +73,8 @@ char buff[25];
 char str_buff[25];
 size_t iter = 0;
 size_t i = 0;
+char num_char[12];
+size_t num_len = 4;
 
 
 bool Compare(char a[], char b[], int i){
@@ -96,18 +99,34 @@ void ReadCommand(char consist[], int len){
 			}else{
 				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
 			}
-		}else if(iter >= 14 && iter < 20){
+		}else if(iter >= 14 && iter < 25){
 			if(Compare(str_buff, "set timeout", 11)){
-				for( int j = iter; j > 11; j--){
-					if(str_buff[j] < '0' || str_buff[j]>'9'){
-						HAL_UART_Transmit(&huart6, (uint8_t*)"need a number in the end. try again\n\r>>", 39, 5);
+				int j;
+				int number = 0;
+				char try_num_char[12];
+				for(j = 12; j < iter; j++){
+					number = number * 10;
+					if((str_buff[j] - '0') > 9){
+						HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rneed a number in the end. try again\n\r>>", 41, 5);
 						//HAL_Delay(20);
 						break;
 					}
+					number = number + (str_buff[j] - '0');
+					try_num_char[j - 12] = str_buff[j] - '0';
 				}
-				HAL_UART_Transmit(&huart6, (uint8_t*)"Timeout eee", 11, 25);
+				if(j >= iter - 1){
+					//num_char = try_num_char;
+					num_len = iter - 12;
+					for(int k  = 0; k < num_len; k++){
+						num_char[k] = try_num_char[k];
+					}
+					now_time_out = number;
+					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rTimeout ", 10, 25);
+					HAL_UART_Transmit(&huart6, (uint8_t*)num_char, num_len, 25);
+					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\r>>", 4, 25);
+				}
 				//HAL_Delay(20);
-				now_time_out = 1000;//Function for it
+				//now_time_out = 1000;//Function for it
 			}else
 				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
 		}else if(iter == 2){
@@ -119,7 +138,9 @@ void ReadCommand(char consist[], int len){
 					HAL_UART_Transmit(&huart6, (uint8_t*)"  -mode 1\n\r", 11, 5);
 				else
 					HAL_UART_Transmit(&huart6, (uint8_t*)"  -mode 2\n\r", 11, 5);
-				HAL_UART_Transmit(&huart6, (uint8_t*)"  -timeout ...\n\r>>", 18, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)"  -timeout ", 11, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)num_char, num_len, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)" \n\r>>", 5, 5);
 			};
 		}else{
 			HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
