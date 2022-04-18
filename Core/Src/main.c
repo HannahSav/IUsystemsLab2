@@ -66,9 +66,7 @@ void SystemClock_Config(void);
   */
 char error[] = "\n\rI don't understand you, try again\n\r>>";
 char ask[] = "\n\rWhat do you want? Print . in the end\n\r>>";
-bool def_mode = 1;
-int def_time_out = 3000;
-int now_time_out = 3000;
+int now_time_out = 1500;
 bool now_mode = 1;
 char buff[25];
 char str_buff[25];
@@ -88,13 +86,15 @@ void ReadCommand(char consist[], int len){
 	//HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
 		if(iter == 11){
 			if(Compare(str_buff, "set mode 1.", 11)){
-				HAL_UART_Transmit(&huart6, (uint8_t*)"mur\n\r>>", 7, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rmode with stops\n\r>>", 21, 5);
 				//HAL_Delay(5);
 				now_mode = 1;
 			}else if(Compare(str_buff, "set mode 2.", 11)){
-				HAL_UART_Transmit(&huart6, (uint8_t*)"mur22\n\r>>", 9, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rmode without stops\n\r>>", 25, 5);
 				//HAL_Delay(20);
 				now_mode = 0;
+			}else{
+				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
 			}
 		}else if(iter >= 14 && iter < 20){
 			if(Compare(str_buff, "set timeout", 11)){
@@ -108,7 +108,19 @@ void ReadCommand(char consist[], int len){
 				HAL_UART_Transmit(&huart6, (uint8_t*)"Timeout eee", 11, 25);
 				//HAL_Delay(20);
 				now_time_out = 1000;//Function for it
-			}
+			}else
+				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
+		}else if(iter == 2){
+			if(Compare(str_buff, "?.", 2)){
+				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rINFO:", 7, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\r  -", 5, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)consist, len, 5);
+				if(now_mode == 1)
+					HAL_UART_Transmit(&huart6, (uint8_t*)"  -mode 1\n\r", 11, 5);
+				else
+					HAL_UART_Transmit(&huart6, (uint8_t*)"  -mode 2\n\r", 11, 5);
+				HAL_UART_Transmit(&huart6, (uint8_t*)"  -timeout ...\n\r>>", 18, 5);
+			};
 		}else{
 			HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
 			//HAL_Delay(2000);
@@ -148,13 +160,13 @@ void CheckRead(char consist[], int len, int now_i_light){
 	 }
 }
 
-void Phore(bool mode, int time_out){
+void Phore(){
 	int i, j;
 	  while (1)
 	  {
 	   /*горит зеленый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-	      for(i = 0; i < time_out/2; i++){
+	      for(i = 0; i < now_time_out/2; i++){
 	    	  HAL_Delay(1);
 	    	  CheckRead("green\n\r", 7, i);
 	      }
@@ -162,37 +174,37 @@ void Phore(bool mode, int time_out){
 	      for(i = 0; i < 7; ++i)
 	      {
 	    	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
-	    	  for(j = 0; j < time_out/10; j++){
+	    	  for(j = 0; j < now_time_out/10; j++){
 	    		  HAL_Delay(1);//300
 	    		  CheckRead("blinking green\n\r", 17, i);
 	    	  }
 	      }
 	    /*горит оранжевый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-	      for(i = 0; i < time_out/5; i++){
+	      for(i = 0; i < now_time_out/5; i++){
 	    	  HAL_Delay(1); //600
 	    	  CheckRead("yellow\n\r", 8, i);
 	      }
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	    /*горит красный*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
-	      i = time_out*2;
+	      i = now_time_out*2;
 	    /*ждем до нажатия кнопки или до окончания времени красного*/
-	      while(i > 0 && (mode == 0 || HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) != GPIO_PIN_RESET)){
+	      while(i > 0 && (now_mode == 0 || HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) != GPIO_PIN_RESET)){
 	       HAL_Delay(1);
 	       CheckRead("red\n\r", 5, i);
 	       i--;
 	      }
 	    /*если красный горел недостаточно долго, то пусть еще погорит*/
-	      if(mode == 1 && i > time_out)//3000
-	    	  for(j = 0; j < i - time_out; j++){
+	      if(now_mode == 1 && i > now_time_out)//3000
+	    	  for(j = 0; j < i - now_time_out; j++){
 	    		  HAL_Delay(1);
 	    		  CheckRead("red\n\r", 5, i);
 	    	  }
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
 	    /*горит оранжевый*/
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
-	      for(i = 0; i < time_out/5; i++){
+	      for(i = 0; i < now_time_out/5; i++){
 	    	  HAL_Delay(1);
 	    	  CheckRead("yellow\n\r", 8, i);
 	      }
@@ -232,7 +244,8 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   /* USER CODE BEGIN WHILE */
-  Phore(1, 1000);
+  HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
+  Phore();
   /*while(1){
 	  ReadCommand();
 	  HAL_Delay(1000);
