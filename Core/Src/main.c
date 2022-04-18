@@ -104,7 +104,7 @@ void ReadCommand(char consist[], int len){
 				int j;
 				int number = 0;
 				char try_num_char[12];
-				for(j = 12; j < iter; j++){
+				for(j = 12; j < iter - 1; j++){
 					number = number * 10;
 					if((str_buff[j] - '0') > 9){
 						HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rneed a number in the end. try again\n\r>>", 41, 5);
@@ -116,11 +116,9 @@ void ReadCommand(char consist[], int len){
 				}
 				if(j >= iter - 1){
 					//num_char = try_num_char;
-					num_len = iter - 12;
-					for(int k  = 0; k < num_len; k++){
-						num_char[k] = try_num_char[k];
-					}
+					num_len = iter - 13;
 					now_time_out = number;
+					sprintf(num_char, "%d", now_time_out);
 					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rTimeout ", 10, 25);
 					HAL_UART_Transmit(&huart6, (uint8_t*)num_char, num_len, 25);
 					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\r>>", 4, 25);
@@ -265,6 +263,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   /* USER CODE BEGIN WHILE */
+  sprintf(num_char, "%d", now_time_out);
   HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
   Phore();
   /*while(1){
