@@ -20,13 +20,15 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
 #include "stdbool.h"
-#include <string.h>
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "oled.h"
 
 /* USER CODE END Includes */
 
@@ -86,15 +88,23 @@ bool Compare(char a[], char b[], int i){
 }
 
 void ReadCommand(char consist[], int len){
-	//HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
+
 		if(iter == 11){
 			if(Compare(str_buff, "set mode 1.", 11)){
 				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rmode with stops\n\r>>", 21, 5);
-				//HAL_Delay(5);
+
+				oled_SetCursor(0, 28);
+				oled_WriteString("with stops   ", Font_7x10, Black);
+				oled_UpdateScreen();
+
 				now_mode = 1;
 			}else if(Compare(str_buff, "set mode 2.", 11)){
 				HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rmode without stops\n\r>>", 25, 5);
-				//HAL_Delay(20);
+
+				oled_SetCursor(0, 28);
+				oled_WriteString("without stops", Font_7x10, Black);
+				oled_UpdateScreen();
+
 				now_mode = 0;
 			}else{
 				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
@@ -103,16 +113,15 @@ void ReadCommand(char consist[], int len){
 			if(Compare(str_buff, "set timeout", 11)){
 				int j;
 				int number = 0;
-				char try_num_char[12];
 				for(j = 12; j < iter - 1; j++){
 					number = number * 10;
 					if((str_buff[j] - '0') > 9){
 						HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rneed a number in the end. try again\n\r>>", 41, 5);
-						//HAL_Delay(20);
 						break;
 					}
 					number = number + (str_buff[j] - '0');
-					try_num_char[j - 12] = str_buff[j] - '0';
+					now_time_out = number;
+					sprintf(num_char, "%d", now_time_out);
 				}
 				if(j >= iter - 1){
 					//num_char = try_num_char;
@@ -122,9 +131,17 @@ void ReadCommand(char consist[], int len){
 					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\rTimeout ", 10, 25);
 					HAL_UART_Transmit(&huart6, (uint8_t*)num_char, num_len, 25);
 					HAL_UART_Transmit(&huart6, (uint8_t*)"\n\r>>", 4, 25);
+
+					oled_SetCursor(56, 38);
+					oled_WriteString(num_char, Font_7x10, Black);
+					oled_SetCursor(56 + j - 12, 38);
+
+					for(int str_i = j-12; str_i < 8; str_i++){
+						oled_SetCursor(56 + 7*str_i, 38);
+						oled_WriteString(" ", Font_7x10, Black);
+					}
+					oled_UpdateScreen();
 				}
-				//HAL_Delay(20);
-				//now_time_out = 1000;//Function for it
 			}else
 				HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
 		}else if(iter == 2){
@@ -142,24 +159,16 @@ void ReadCommand(char consist[], int len){
 			};
 		}else{
 			HAL_UART_Transmit(&huart6, (uint8_t*)error, 40, 5);
-			//HAL_Delay(2000);
 
-		//HAL_UART_Transmit(&huart6, (uint8_t*)str_buff, 15, 25);
-		/*HAL_Delay(20);
-		*/
 
 	}
 	/*TODO:
-	 * ?
-	 * parralel
-	 * parse timeout
+
 	 */
 }
 
 void CheckRead(char consist[], int len, int now_i_light){
-	//HAL_UART_Transmit(&huart6, (uint8_t*)consist, 111, 20);
 	 char symb = '7';
-	 //HAL_UART_Transmit(&huart6, (uint8_t*)"now_i = \n", 8, 5);
 	 if(HAL_UART_Receive(&huart6, &symb, 1, 1) == HAL_OK){
 		 HAL_UART_Transmit(&huart6, &symb, 1, 1);
 		 buff[iter] = symb;
@@ -171,9 +180,7 @@ void CheckRead(char consist[], int len, int now_i_light){
 		 else
 		 {
 			 strcpy(str_buff,buff);
-			 //HAL_UART_Transmit(&huart6, (uint8_t*)str_buff, 25, 25);
 			 ReadCommand(consist, len);
-			 //HAL_UART_Transmit(&huart6, (uint8_t*)consist, len, 5);
 		 }
 		 iter = 0;
 	 }
@@ -184,12 +191,23 @@ void Phore(){
 	  while (1)
 	  {
 	   /*горит зеленый*/
+
+	      oled_SetCursor(0, 18);
+	      oled_WriteString("green    ", Font_7x10, Black);
+	      oled_UpdateScreen();
+
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
+
 	      for(i = 0; i < now_time_out/2; i++){
 	    	  HAL_Delay(1);
 	    	  CheckRead("green\n\r", 7, i);
 	      }
 	   /*мигает зеленый*/
+
+	      oled_SetCursor(0,18);
+	      oled_WriteString("blinking", Font_7x10, Black);
+	      oled_UpdateScreen();
+
 	      for(i = 0; i < 7; ++i)
 	      {
 	    	  HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_13);
@@ -199,6 +217,11 @@ void Phore(){
 	    	  }
 	      }
 	    /*горит оранжевый*/
+
+	      oled_SetCursor(0, 18);
+	      oled_WriteString("yellow  ", Font_7x10, Black);
+	      oled_UpdateScreen();
+
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	      for(i = 0; i < now_time_out/5; i++){
 	    	  HAL_Delay(1); //600
@@ -206,22 +229,63 @@ void Phore(){
 	      }
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	    /*горит красный*/
+
+	      oled_SetCursor(0, 18);
+	      oled_WriteString("red     ", Font_7x10, Black);
+	      oled_UpdateScreen();
+
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
 	      i = now_time_out*2;
 	    /*ждем до нажатия кнопки или до окончания времени красного*/
+
+
 	      while(i > 0 && (now_mode == 0 || HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15) != GPIO_PIN_RESET)){
 	       HAL_Delay(1);
 	       CheckRead("red\n\r", 5, i);
 	       i--;
 	      }
+
 	    /*если красный горел недостаточно долго, то пусть еще погорит*/
-	      if(now_mode == 1 && i > now_time_out)//3000
-	    	  for(j = 0; j < i - now_time_out; j++){
+	      char char_j[8];
+	      int part_j;
+	      if(now_mode == 1 && i > now_time_out){
+		      oled_SetCursor(0, 48);
+		      oled_WriteString("Wait ", Font_7x10, Black);
+		      oled_UpdateScreen();
+	    	  for(j = i - now_time_out; j > 0 ; j--){
+	    		  if(j%100 == 0){
+	    		  part_j = j/100;
+	    		  oled_SetCursor(35, 48);
+	    		  sprintf(char_j, "%d", part_j);
+			      oled_WriteString(char_j, Font_7x10, Black);
+			      if(part_j < 1000){
+			    	  oled_SetCursor(35 + 21, 48);
+			    	  oled_WriteString(" ", Font_7x10, Black);
+			      }
+			      if(part_j < 100){
+			      	  oled_SetCursor(35 + 14, 48);
+			      	  oled_WriteString(" ", Font_7x10, Black);
+			      }
+			      if(part_j < 10){
+			          oled_SetCursor(35 + 7, 48);
+			      	  oled_WriteString(" ", Font_7x10, Black);
+			      }
+			      oled_UpdateScreen();
+	    		  }
 	    		  HAL_Delay(1);
 	    		  CheckRead("red\n\r", 5, i);
 	    	  }
+	      }
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_15);
 	    /*горит оранжевый*/
+
+	      oled_SetCursor(0, 48);
+	      oled_WriteString("           ", Font_7x10, Black);
+
+	      oled_SetCursor(0, 18);
+	      oled_WriteString("yellow  ", Font_7x10, Black);
+	      oled_UpdateScreen();
+
 	      HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_14);
 	      for(i = 0; i < now_time_out/5; i++){
 	    	  HAL_Delay(1);
@@ -255,21 +319,34 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_I2C1_Init();
   MX_USART6_UART_Init();
+
+  oled_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  oled_Fill(White);
+  oled_SetCursor(0,0);
+  oled_WriteString("INFO", Font_11x18, Black);
+  oled_SetCursor(0,18);
+  oled_WriteString("green", Font_7x10, Black);
+  oled_SetCursor(0,28);
+  oled_WriteString("with stops", Font_7x10, Black);
+  oled_SetCursor(0,38);
+  oled_WriteString("timeout:", Font_7x10, Black);
+  oled_SetCursor(56,38);
+  oled_WriteString("1500", Font_7x10, Black);
+  oled_UpdateScreen();
+
   /* USER CODE BEGIN WHILE */
   sprintf(num_char, "%d", now_time_out);
   HAL_UART_Transmit(&huart6, (uint8_t*)ask, 42, 25);
   Phore();
-  /*while(1){
-	  ReadCommand();
-	  HAL_Delay(1000);
-  }*/
+
   uint8_t str[100];
 
 }

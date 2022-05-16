@@ -60,8 +60,8 @@ all: main-build
 main-build: SDK_UART_l2.elf secondary-outputs
 
 # Tool invocations
-SDK_UART_l2.elf SDK_UART_l2.map: $(OBJS) $(USER_OBJS) C:\Users\Hannah\Desktop\IUsystems\IUsystemsLab2\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "SDK_UART_l2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Hannah\Desktop\IUsystems\IUsystemsLab2\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SDK_UART_l2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+SDK_UART_l2.elf SDK_UART_l2.map: $(OBJS) $(USER_OBJS) C:\Users\Hannah\Desktop\6SEM\IUsystems\IUsystemsLab2\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "SDK_UART_l2.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Hannah\Desktop\6SEM\IUsystems\IUsystemsLab2\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="SDK_UART_l2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
