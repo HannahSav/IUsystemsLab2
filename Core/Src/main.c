@@ -163,7 +163,6 @@ void ReadCommand(char consist[], int len){
 
 	}
 	/*TODO:
-
 	 */
 }
 
